@@ -1,0 +1,61 @@
+#!/usr/bin/env zsh
+
+# Set the base and typically useful options
+emulate -LR zsh
+setopt extendedglob warncreateglobal typesetsilent noshortloops rcquotes
+
+# Run as script? ZSH_SCRIPT is a Zsh 5.3 addition
+if [[ $0 != fzf-history || -n $ZSH_SCRIPT ]]; then
+  # Handle $0 according to the Zsh Plugin Standard:
+  # http://zdharma.org/Zsh-100-Commits-Club/Zsh-Plugin-Standard.html
+  0=${${ZERO:-${0:#$ZSH_ARGZERO}}:-${(%):-%N}}
+  0=${${(M)0##/*}:-$PWD/$0}
+
+  # Such global variable is expected to be typeset'd -g in the plugin.zsh
+  # file. Here it's restored in case of the function being run as a script.
+  typeset -gA Plugins
+  Plugins[ZSH_FZF_DIR]=${0:h}
+
+  # In case of the script using other scripts from the plugin, either set up
+  # $fpath and autoload, or add the directory to $PATH.
+  fpath+=( $Plugins[ZSH_FZF_DIR] )
+  autoload -Uz .fzf-cmd
+
+  typeset -gA ZSH_FZF
+fi
+
+function .history-select() {
+  local findcmd fzfopts ret item
+
+  findcmd=${ZSH_FZF[FIND_HISTORY_COMMAND]:-"fc -l 1 | sort -k 2 | uniq -f 1 | sort -k 1 -r"}
+  fzfopts=${ZSH_FZF[HISTORY_DEFAULT_OPTS]:-${ZSH_FZF[DEFAULT_OPTS]:-"--reverse --border --height 40% --query=${(qqq)LBUFFER} --tiebreak=index"}}
+
+  eval ${findcmd} | eval "$(.fzf-cmd) ${fzfopts} +m" | while read item; do
+    if [[ -n ${item} ]]; then
+      echo -n "${item%%( )*}"
+    fi
+  done
+
+  ret=$?
+
+  return ${ret}
+}
+
+local ret cmd
+
+cmd=$(.history-select)
+
+ret=$?
+
+if [[ -z ${cmd} ]]; then
+  zle redisplay
+
+  return ${ret}
+fi
+
+zle vi-fetch-history -n ${cmd}
+zle redisplay
+
+return ${ret}
+
+
