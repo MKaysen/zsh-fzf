@@ -14,26 +14,12 @@ if [[ ${zsh_loaded_plugins[-1]} != */zsh-fzf && -z ${fpath[(r)${0:h}/functions]}
 typeset -gA Plugins
 Plugins[ZSH_FZF_DIR]="${0:h}"
 
-typeset -gA ZSH_FZF
+(( ${+commands[fzf]} )) && () {
 
-typeset -gAH _ZSH_FZF
-_ZSH_FZF[TRUTHY]="true|yes|on|1"
+  local initfile=${XDG_CONFIG_HOME:-$HOME/.config/fzf/fzf.zsh}
+  if [[ -e $initfile ]]; then
+    source $initfile
+  fi
 
-autoload -Uz .fzf-cmd .fzf-redraw-prompt .fzf-append-left-buffer fzf-file \
-              fzf-cd fzf-history
-
-zle -N fzf-redraw-prompt .fzf-redraw-prompt
-
-zle -N fzf-file
-bindkey '^T' fzf-file
-
-function fzf-file-preview() fzf-file 'preview'
-zle -N fzf-file-preview
-bindkey '^F' fzf-file-preview
-
-zle -N fzf-cd
-bindkey '^G' fzf-cd
-
-zle -N fzf-history
-bindkey '^R' fzf-history
+} ${Plugins[ZSH_FZF_DIR]}
 
